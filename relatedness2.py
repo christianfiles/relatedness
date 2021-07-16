@@ -47,7 +47,14 @@ def relatedness_test(ped, relatednessFile):
         pedFile.columns = ['familyid', 'individualid', 'paternalid', 'maternalid', 'sex', 'phenotype']
     
     familyIdentifier = pedFile.familyid.unique().tolist()
-    familyIdentifier.remove('0')
+
+    if '0' in familyIdentifier:
+
+        familyIdentifier.remove('0')
+
+    elif 0 in familyIdentifier:
+
+        familyIdentifier.remove(0)
 
     # Creating an empty dictionary to store family identifiers and also their variables (key value pairs)
     familyID = {}
