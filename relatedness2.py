@@ -9,9 +9,8 @@ Calculates whether the relationships between proband and parents are what is exp
 
 
 import pandas as pd
-import warnings
 
-def relatedness_test(ped, relatednessFile):
+def relatedness_test(ped, relatedness_file, min_relatedness, max_relatedness, max_parents_relatedness):
 
     """
     Open the ped and relatedness files
@@ -23,79 +22,76 @@ def relatedness_test(ped, relatednessFile):
     
     # Try opening the ped and relatedness files, otherwise output that the file could not be found
     try:
-        pedFile = pd.read_csv(ped, delimiter = '\t', header = None)
-        relateFile = pd.read_csv(relatednessFile, delimiter = '\t')
+        ped_file = pd.read_csv(ped, delimiter = '\t', header = None)
+        relate_file = pd.read_csv(relatedness_file, delimiter = '\t')
     except:
-        fileP = open(ped + '.txt', 'w')
-        fileP.write('Ped file could not be found- check file name')
-        fileP.close()
-        fileR = open(relatednessFile + '.txt', 'w')
-        fileR.write('Relatedness file could not be found- check file name')
-        fileR.close()
         return False, 'Either the pedigree file or relatedness file could not be found'
 
     # Check to see if there are the correct amount of columns in each file and if yes then rename column names in ped file
-    if len(relateFile.columns) != 7:
+    if len(relate_file.columns) != 7:
         return False, 'There are the incorrect amount of columns within the relatedness file'
-    else:
-        pass
 
-    #### This commented section creates a unique list of family IDs from the ped file, therefore it works with multiple families
-    if len(pedFile.columns) != 6:
+    # This section creates a unique list of family IDs from the ped file, therefore it works with multiple families
+    if len(ped_file.columns) != 6:
         return False, 'There are the incorrect amount of columns within the pedigree file'
     else:
-        pedFile.columns = ['familyid', 'individualid', 'paternalid', 'maternalid', 'sex', 'phenotype']
+        ped_file.columns = ['family_id', 'individual_id', 'paternal_id', 'maternal_id', 'sex', 'phenotype']
     
-    familyIdentifier = pedFile.familyid.unique().tolist()
+    family_identifier = ped_file.family_id.unique().tolist()
 
-    if '0' in familyIdentifier:
+    if '0' in family_identifier:
 
-        familyIdentifier.remove('0')
+        family_identifier.remove('0')
 
-    elif 0 in familyIdentifier:
+    elif 0 in family_identifier:
 
-        familyIdentifier.remove(0)
+        family_identifier.remove(0)
+
+    # Checking that family_identifier is populated
+    if family_identifier == []:
+        return False, 'Looks like family ID in the pedigree file is incorrect'
 
     # Creating an empty dictionary to store family identifiers and also their variables (key value pairs)
-    familyID = {}
+    family_id = {}
 
-    for ID in familyIdentifier:
-        familyID[ID] = {}
+    for ID in family_identifier:
+        family_id[ID] = {}
 
-    #This will assign the mum for each ID! crack on with this tomorrow!
-    for ID in familyIdentifier:                                                                      
-       for x in pedFile.index:                                                                       
-            if pedFile.paternalid[x] == '0' and pedFile.sex[x] == 2 and pedFile.familyid[x] == ID:
-                familyID[ID]['mum'] = pedFile.individualid[x]
-            elif pedFile.paternalid[x] == '0' and pedFile.sex[x] == 1 and pedFile.familyid[x] == ID:
-                familyID[ID]['dad'] = pedFile.individualid[x]
-            elif pedFile.paternalid[x] != '0' and pedFile.sex[x] != 0 and pedFile.familyid[x] == ID:
-                familyID[ID]['proband'] = pedFile.individualid[x]
-            if pedFile.sex[x] > 2 or pedFile.phenotype[x] > 2:
-                return False
+    # This will assign the mum for each ID
+    for ID in family_identifier:                                                                      
+       for x in ped_file.index:                                                                       
+            if ped_file.paternal_id[x] == '0' and ped_file.sex[x] == 2 and ped_file.family_id[x] == ID:
+                family_id[ID]['mum'] = ped_file.individual_id[x]
+            elif ped_file.paternal_id[x] == '0' and ped_file.sex[x] == 1 and ped_file.family_id[x] == ID:
+                family_id[ID]['dad'] = ped_file.individual_id[x]
+            elif ped_file.paternal_id[x] != '0' and ped_file.sex[x] != 0 and ped_file.family_id[x] == ID:
+                family_id[ID]['proband'] = ped_file.individual_id[x]
+            if ped_file.sex[x] > 2 or ped_file.phenotype[x] > 2:
+                return False, 'Pedigree file does not look correct'
 
 
     # Getting rid of the NTCs in INDV columns
-    noNTC = relateFile[relateFile['INDV1'] != 'NTC']
-    relateFile = noNTC[noNTC['INDV2'] != 'NTC']
+    no_ntc = relate_file[relate_file['INDV1'] != 'NTC']
+    relate_file = no_ntc[no_ntc['INDV2'] != 'NTC']
 
 
-    for ID in familyIdentifier:
-        for x in relateFile.index:
-            if relateFile['INDV1'][x] == familyID[ID]['proband'] or relateFile['INDV2'][x] == familyID[ID]['proband']:
-                if relateFile['INDV1'][x] == familyID[ID]['mum'] or relateFile['INDV1'][x] == familyID[ID]['dad'] or relateFile['INDV2'][x] == familyID[ID]['mum'] or relateFile['INDV2'][x] == familyID[ID]['dad']:
-                    if relateFile['RELATEDNESS_PHI'][x] >= 0.2 and relateFile['RELATEDNESS_PHI'][x] <= 0.3:
+    for ID in family_identifier:
+        for x in relate_file.index:
+            if relate_file['INDV1'][x] == family_id[ID]['proband'] or relate_file['INDV2'][x] == family_id[ID]['proband']:
+                if relate_file['INDV1'][x] == family_id[ID]['mum'] or relate_file['INDV1'][x] == family_id[ID]['dad'] or relate_file['INDV2'][x] == family_id[ID]['mum'] or relate_file['INDV2'][x] == family_id[ID]['dad']:
+                    if relate_file['RELATEDNESS_PHI'][x] >= min_relatedness and relate_file['RELATEDNESS_PHI'][x] <= max_relatedness:
                         pass
-                    elif relateFile['RELATEDNESS_PHI'][x] < 0.2 or relateFile['RELATEDNESS_PHI'][x] > 0.3:
-                        return False
-            if relateFile['INDV1'][x] == familyID[ID]['mum'] and relateFile['INDV2'][x] == familyID[ID]['dad'] and relateFile['RELATEDNESS_PHI'][x] >= 0.04:
-                return False, 'Looks like a possible problem. Check to see if parents are related'
-        return True
+                    elif relate_file['RELATEDNESS_PHI'][x] < min_relatedness or relate_file['RELATEDNESS_PHI'][x] > max_relatedness:
+                        return False, 'Relatedness error'
+            if relate_file['INDV1'][x] == family_id[ID]['mum'] and relate_file['INDV2'][x] == family_id[ID]['dad'] and relate_file['RELATEDNESS_PHI'][x] >= max_parents_relatedness:
+                return False, 'Looks like a possible problem. Check pedigree and relateness file'
+        return True, 'Everything relatedness looks fine'
 
 if __name__ == '__main__':
 
     #result = relatedness_test('testData/210622_A00748_0110_AH5T3CDRXY.ped', 'testData/210622_A00748_0110_AH5T3CDRXYFAIL.relatedness2')
-    result = relatedness_test('testData/201215_A00748_0068_AHT3FCDMXX_INCORRECT_NUMBER_OF_COLUMNS.ped', 'testData/201215_A00748_0068_AHT3FCDMXX.relatedness2')
+    #result = relatedness_test('testData/201215_A00748_0068_AHT3FCDMXX.ped', 'testData/201215_A00748_0068_AHT3FCDMXX.relatedness2', 0.2, 0.3, 0.04)
+    result = relatedness_test('testData/K00150_0149_AHG7YKBBXX.ped', 'testData/K00150_0149_AHG7YKBBXX.relatedness2', 0.2, 0.3, 0.04)
     #result = relatedness_test('this_file_does_not_exist.ped', 'this_file_also_does_not_exist.relatedness2')
     print(result)
 
