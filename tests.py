@@ -67,8 +67,26 @@ class TestRelatedness(unittest.TestCase):
 		result, comment = relatedness_test('testData/210709_NB551319_0232_AHF2JFBGXJ.ped', 'testData/210709_NB551319_0232_AHF2JFBGXJ_duplicate.relatedness2', 0.2, 0.3, 0.04)
 		self.assertEqual(result, False)
 
+	def test_multiple_trios_fail(self):
 
+		# should fail as 19M06442 is not related to its dad 20M11003
+		result, comment = relatedness_test('testData/201215_A00748_0068_AHT3FCDMXX_2.ped', 'testData/201215_A00748_0068_AHT3FCDMXX_2.relatedness2', 0.2, 0.3, 0.04)
 
+		self.assertEqual(result, False)
+
+	def test_multiple_trios_fail(self):
+
+		# should fail as 19M06442 is a duplicate of its dad 20M11003
+		result, comment = relatedness_test('testData/201215_A00748_0068_AHT3FCDMXX_2.ped', 'testData/201215_A00748_0068_AHT3FCDMXX_3.relatedness2', 0.2, 0.3, 0.04)
+
+		self.assertEqual(result, False)
+
+	def test_mixed_up_relatedness_mum_not_in_same_family(self):
+
+		# should fail as 20M08216 (FAM001) is not in same family as mum (20M11351)
+		result, comment = relatedness_test('testData/201215_A00748_0068_AHT3FCDMXX_4.ped', 'testData/201215_A00748_0068_AHT3FCDMXX.relatedness2', 0.2, 0.3, 0.04)
+
+		self.assertEqual(result, False)
 
 if __name__ == '__main__':
 	unittest.main()
